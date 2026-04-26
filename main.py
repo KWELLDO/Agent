@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 # ===== 引入区 =====
-import os
 import sys
 from typing import Any, cast
 
@@ -9,7 +8,7 @@ from langchain_core.messages import HumanMessage
 
 from logger import setup_logging, get_logger
 from tools import run_command
-from model_setup import build_llm
+from model_setup import build_llm_from_env
 from agent_setup import build_agent
 
 
@@ -17,28 +16,7 @@ from agent_setup import build_agent
 setup_logging()
 logger = get_logger("main")
 
-provider = os.getenv("LLM_PROVIDER", "deepseek").lower()
-
-if provider == "ollama":
-    llm = build_llm(
-        provider="ollama",
-        model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
-        base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        temperature=0,
-    )
-else:
-    api_key = os.getenv("DEEPSEEK_API_KEY")
-    if not api_key:
-        logger.error("未设置 DEEPSEEK_API_KEY 环境变量（或设置 LLM_PROVIDER=ollama 使用本地模型）")
-        sys.exit(1)
-    llm = build_llm(
-        provider="deepseek",
-        api_key=api_key,
-        model=os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro"),
-        reasoning_effort="high",
-        temperature=0,
-    )
-
+llm = build_llm_from_env()
 if llm is None:
     sys.exit(1)
 

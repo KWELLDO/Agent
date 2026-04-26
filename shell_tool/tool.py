@@ -1,10 +1,11 @@
+# ===== 引入区 =====
 from langchain_core.tools import tool
 
 from shell_tool.session import SHELL_CONFIG, get_session
 from logger import get_logger
 
-logger = get_logger("shell_tool")
 
+# ===== 定义区 =====
 MAX_OUTPUT_CHARS = 4000
 
 
@@ -44,3 +45,7 @@ def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeo
 
     logger.info(f"run_command ok: {len(output)} chars")
     return output
+
+
+# ===== 执行区 =====
+logger = get_logger("shell_tool")

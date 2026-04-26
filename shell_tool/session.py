@@ -1,3 +1,4 @@
+# ===== 引入区 =====
 import re
 import shlex
 
@@ -5,8 +6,8 @@ import pexpect
 
 from logger import get_logger
 
-logger = get_logger("shell_session")
 
+# ===== 定义区 =====
 SHELL_CONFIG = {
     "bash":       {"executable": "/bin/bash"},
     "powershell": {"executable": "pwsh"},
@@ -14,7 +15,6 @@ SHELL_CONFIG = {
 }
 
 _MARKER = "###CMD_DONE###"
-# 只匹配新行开头的 MARKER，避免匹配到回显的命令行（如 echo '###CMD_DONE###'）
 _MARKER_RE = re.compile(f"\n{_MARKER}")
 
 
@@ -34,7 +34,6 @@ class ShellSession:
         )
         self._cwd = "."
         self.shell = shell
-        # 排空 spawn 后的所有初始输出
         self.child.sendline(f"echo '{_MARKER}'")
         self.child.expect(_MARKER_RE, timeout=10)
 
@@ -50,7 +49,6 @@ class ShellSession:
         self.child.sendline(f"{command} 2>&1; echo '{_MARKER}'")
         self.child.expect(_MARKER_RE, timeout=timeout)
         output = (self.child.before or "").strip()
-        # 去掉第一行（被回显的命令本身），有真实输出时才有第二行
         if "\n" in output:
             output = output.split("\n", 1)[1].strip()
         else:
@@ -70,3 +68,7 @@ def get_session(shell: str = "bash") -> ShellSession:
     if shell not in _session_cache:
         _session_cache[shell] = ShellSession(shell)
     return _session_cache[shell]
+
+
+# ===== 执行区 =====
+logger = get_logger("shell_session")

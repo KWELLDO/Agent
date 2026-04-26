@@ -1,7 +1,9 @@
+# ===== 引入区 =====
 import sys
 import logging
 
 
+# ===== 定义区 =====
 def setup_logging(level: int = logging.INFO) -> None:
     logging.basicConfig(
         level=level,

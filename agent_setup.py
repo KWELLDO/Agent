@@ -1,3 +1,4 @@
+# ===== 引入区 =====
 from typing import Any
 
 from dotenv import load_dotenv
@@ -9,11 +10,8 @@ from langchain.agents import create_agent
 
 from logger import get_logger
 
-logger = get_logger("agent_setup")
 
-load_dotenv()
-
-
+# ===== 定义区 =====
 class DeepSeekThinkingModel(ChatDeepSeek):
     def __init__(
         self,
@@ -77,3 +75,9 @@ def build_agent(
     except (ValueError, TypeError, AssertionError, OSError):
         logger.exception("Agent 创建失败")
         return None
+
+
+# ===== 执行区 =====
+logger = get_logger("agent_setup")
+
+load_dotenv()

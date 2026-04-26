@@ -61,14 +61,5 @@ class ShellSession:
             self.child.close()
 
 
-_session_cache: dict[str, ShellSession] = {}
-
-
-def get_session(shell: str = "bash") -> ShellSession:
-    if shell not in _session_cache:
-        _session_cache[shell] = ShellSession(shell)
-    return _session_cache[shell]
-
-
 # ===== 执行区 =====
 logger = get_logger("shell_session")

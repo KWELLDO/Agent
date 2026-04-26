@@ -10,6 +10,7 @@ from logger import setup_logging, get_logger
 from tools import run_command
 from model_setup import build_llm_from_env
 from agent_setup import build_agent
+from safety import MessageHistory
 
 
 # ===== 执行区 =====
@@ -28,7 +29,7 @@ if agent is None:
 
 if __name__ == "__main__":
     logger.info("应用启动")
-    agent_state: dict[str, Any] = {"messages": []}
+    history = MessageHistory()
     print("本项目是Agent项目，输入 exit 退出")
     while True:
         try:
@@ -46,10 +47,11 @@ if __name__ == "__main__":
 
         logger.info(f"用户输入: {user_input}")
         try:
-            agent_state = cast(dict[str, Any], agent.invoke(
-                cast(Any, {"messages": [*agent_state["messages"], HumanMessage(content=user_input)]})
+            result = cast(dict[str, Any], agent.invoke(
+                cast(Any, {"messages": [*history.to_messages(), HumanMessage(content=user_input)]})
             ))
-            output = agent_state["messages"][-1].content
+            history.reset(result["messages"])
+            output = history.last().content
             logger.info(f"Agent 响应成功, output={output[:50]}")
             print("Agent：", output)
         except (KeyError, TypeError, ValueError):

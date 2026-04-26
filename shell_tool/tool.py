@@ -1,7 +1,8 @@
 # ===== 引入区 =====
 from langchain_core.tools import tool
 
-from shell_tool.session import SHELL_CONFIG, get_session
+from shell_tool.session import SHELL_CONFIG
+from shell_tool.safety_session_pool import pool
 from logger import get_logger
 
 
@@ -27,13 +28,14 @@ def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeo
 
     logger.info(f"run_command: shell={shell}, cwd={cwd}, timeout={timeout}, command={command[:120]}")
     try:
-        session = get_session(shell)
+        session = pool.get(shell)
         output = session.execute(command, cwd=cwd, timeout=timeout)
     except FileNotFoundError:
         logger.error(f"{shell} 未安装")
         return f"{shell} 未安装，请先安装后再使用"
     except TimeoutError:
-        logger.warning(f"命令超时({timeout}s): {command[:80]}")
+        logger.warning(f"命令超时({timeout}s)，强制终止: {command[:80]}")
+        pool.kill(shell)
         return f"命令执行超时（{timeout}s）"
     except Exception:
         logger.exception(f"run_command 执行异常: {command[:80]}")

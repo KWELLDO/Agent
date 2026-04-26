@@ -4,6 +4,8 @@ from typing import Any
 from dotenv import load_dotenv
 from pydantic import SecretStr
 from langchain_deepseek import ChatDeepSeek
+from langchain_ollama import ChatOllama
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
 from langchain_core.language_models import LanguageModelInput
 from langchain.agents import create_agent
@@ -41,7 +43,7 @@ class DeepSeekThinkingModel(ChatDeepSeek):
         return payload
 
 
-def build_llm(
+def _build_deepseek_llm(
     api_key: str,
     model: str = "deepseek-v4-pro",
     reasoning_effort: str = "high",
@@ -56,15 +58,57 @@ def build_llm(
             reasoning_effort=reasoning_effort,
             enable_thinking=enable_thinking,
         )
-        logger.info(f"模型初始化成功: {model}, reasoning_effort={reasoning_effort}")
+        logger.info(f"DeepSeek 模型初始化成功: {model}, reasoning_effort={reasoning_effort}")
         return llm
     except (ValueError, TypeError, OSError):
-        logger.exception(f"模型初始化失败: {model}")
+        logger.exception(f"DeepSeek 模型初始化失败: {model}")
         return None
 
 
+def _build_ollama_llm(
+    model: str = "qwen3.5:4b",
+    temperature: float = 0,
+    base_url: str = "http://localhost:11434",
+    num_ctx: int = 4096,
+) -> ChatOllama | None:
+    try:
+        llm = ChatOllama(
+            model=model,
+            temperature=temperature,
+            base_url=base_url,
+            num_ctx=num_ctx,
+        )
+        logger.info(f"Ollama 模型初始化成功: {model}")
+        return llm
+    except Exception:
+        logger.exception(f"Ollama 模型初始化失败: {model}")
+        return None
+
+
+def build_llm(
+    provider: str = "deepseek",
+    api_key: str | None = None,
+    model: str | None = None,
+    **kwargs: Any,
+) -> BaseChatModel | None:
+    if provider == "ollama":
+        return _build_ollama_llm(
+            model=model or "qwen3.5:4b",
+            temperature=kwargs.get("temperature", 0),
+            base_url=kwargs.get("base_url", "http://localhost:11434"),
+            num_ctx=kwargs.get("num_ctx", 4096),
+        )
+    return _build_deepseek_llm(
+        api_key=api_key or "",
+        model=model or "deepseek-v4-pro",
+        reasoning_effort=kwargs.get("reasoning_effort", "high"),
+        enable_thinking=kwargs.get("enable_thinking", True),
+        temperature=kwargs.get("temperature", 0),
+    )
+
+
 def build_agent(
-    llm: DeepSeekThinkingModel,
+    llm: BaseChatModel,
     tools: list,
     system_prompt: str = "你是一个会执行 shell 命令的助手。需要运行命令时调用 run_command 工具，根据需要选择 bash / powershell / nushell。",
 ) -> Any:

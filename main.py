@@ -16,12 +16,28 @@ from agent_setup import build_llm, build_agent
 setup_logging()
 logger = get_logger("main")
 
-api_key = os.getenv("DEEPSEEK_API_KEY")
-if not api_key:
-    logger.error("未设置 DEEPSEEK_API_KEY 环境变量")
-    sys.exit(1)
+provider = os.getenv("LLM_PROVIDER", "deepseek").lower()
 
-llm = build_llm(api_key, model="deepseek-v4-pro", reasoning_effort="high")
+if provider == "ollama":
+    llm = build_llm(
+        provider="ollama",
+        model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
+        base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        temperature=0,
+    )
+else:
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    if not api_key:
+        logger.error("未设置 DEEPSEEK_API_KEY 环境变量（或设置 LLM_PROVIDER=ollama 使用本地模型）")
+        sys.exit(1)
+    llm = build_llm(
+        provider="deepseek",
+        api_key=api_key,
+        model=os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro"),
+        reasoning_effort="high",
+        temperature=0,
+    )
+
 if llm is None:
     sys.exit(1)
 

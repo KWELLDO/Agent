@@ -7,7 +7,7 @@ from typing import Any, cast
 from langchain_core.messages import HumanMessage
 
 from logger import setup_logging, get_logger
-from tools import get_weather
+from tools import run_command
 from agent_setup import build_llm, build_agent
 
 setup_logging()
@@ -22,7 +22,7 @@ llm = build_llm(api_key, model="deepseek-v4-pro", reasoning_effort="high")
 if llm is None:
     sys.exit(1)
 
-tools = [get_weather]
+tools = [run_command]
 
 agent = build_agent(llm, tools)
 if agent is None:
@@ -31,7 +31,7 @@ if agent is None:
 if __name__ == "__main__":
     logger.info("应用启动")
     agent_state: dict[str, Any] = {"messages": []}
-    print("输入问题（如：北京天气？），输入 exit 退出")
+    print("输入问题（如：列出当前目录文件），输入 exit 退出")
     while True:
         try:
             user_input = input("你：")

@@ -68,7 +68,7 @@ def build_llm(
 def build_agent(
     llm: DeepSeekThinkingModel,
     tools: list,
-    system_prompt: str = "你是一个会调用工具的助手。用户问天气时，调用 get_weather 工具。",
+    system_prompt: str = "你是一个会执行 shell 命令的助手。需要运行命令时调用 run_command 工具，根据需要选择 bash / powershell / nushell。",
 ) -> Any:
     try:
         agent = create_agent(model=llm, tools=tools, system_prompt=system_prompt)

@@ -9,7 +9,8 @@ from langchain_core.messages import HumanMessage
 
 from logger import setup_logging, get_logger
 from tools import run_command
-from agent_setup import build_llm, build_agent
+from model_setup import build_llm
+from agent_setup import build_agent
 
 
 # ===== 执行区 =====

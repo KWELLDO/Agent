@@ -29,7 +29,7 @@ if agent is None:
 if __name__ == "__main__":
     logger.info("应用启动")
     agent_state: dict[str, Any] = {"messages": []}
-    print("输入问题（如：列出当前目录文件），输入 exit 退出")
+    print("本项目是Agent项目，输入 exit 退出")
     while True:
         try:
             user_input = input("你：")

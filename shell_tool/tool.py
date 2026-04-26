@@ -26,6 +26,9 @@ def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeo
     if shell not in SHELL_CONFIG:
         return f"不支持的 shell: {shell}，可选: {', '.join(SHELL_CONFIG)}"
 
+    if cwd is not None and str(cwd).lower() in ("none", "null", ""):
+        cwd = None
+
     logger.info(f"run_command: shell={shell}, cwd={cwd}, timeout={timeout}, command={command[:120]}")
     try:
         session = pool.get(shell)

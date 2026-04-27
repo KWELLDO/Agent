@@ -30,6 +30,8 @@ class ShellSession:
             encoding="utf-8",
             codec_errors="replace",
             timeout=30,
+            maxread=65536,
+            searchwindowsize=None,
             env={"TERM": "dumb"},
         )
         self._cwd = "."
@@ -53,6 +55,8 @@ class ShellSession:
             output = output.split("\n", 1)[1].strip()
         else:
             output = ""
+
+        self.child.buffer = ""
         return output or "(no output)"
 
     def close(self):

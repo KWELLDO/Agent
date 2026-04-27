@@ -6,6 +6,7 @@ const state = {
   streaming: false,
   streamBuffer: '',
   toolDisplayLevel: localStorage.getItem('toolDisplayLevel') || 'normal',
+  toolEventsPending: false,
 };
 
 // ===== DOM =====
@@ -136,6 +137,10 @@ function getOrCreateStreamCard() {
 
 function appendStreamToken(text) {
   state.streamBuffer += text;
+  if (state.toolEventsPending && !_streamCard) {
+    state.toolEventsPending = false;
+    getOrCreateStreamCard();
+  }
   const el = getOrCreateStreamCard();
   const bubble = el.querySelector('.msg-bubble');
   if (state.streamBuffer.length > 0) {
@@ -191,8 +196,14 @@ function connectWs() {
     const level = state.toolDisplayLevel;
     if (level === 'hidden') return;
 
-    if (ev.type === 'tool_call' && (level === 'verbose' || level === 'normal')) {
+    if (ev.type === 'tool_call') {
       if (level === 'compact') return;
+      if (_streamCard && dom.chatMessages.contains(_streamCard)) {
+        _streamCard.remove();
+        _streamCard = null;
+        state.streamBuffer = '';
+      }
+      state.toolEventsPending = true;
       addMsgCard('tool', `⚡ ${ev.content}`);
     }
 
@@ -220,12 +231,13 @@ function connectWs() {
         break;
       case 'done':
         if (!state.streamBuffer && ev.content) {
+          state.toolEventsPending = false;
           getOrCreateStreamCard();
-          const el = _streamCard;
-          if (el) {
-            el.querySelector('.msg-bubble').innerHTML = parseMarkdown(ev.content);
+          if (_streamCard) {
+            _streamCard.querySelector('.msg-bubble').innerHTML = parseMarkdown(ev.content);
           }
         }
+        state.toolEventsPending = false;
         finalizeStream();
         break;
       case 'error':

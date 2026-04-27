@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Web UI</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <h1>Agent</h1>
+        <span id="status-dot" class="dot offline" title="未连接"></span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-tab="chat">💬 聊天</button>
+        <button class="nav-btn" data-tab="cron">⏰ 定时任务</button>
+        <button class="nav-btn" data-tab="logs">📋 日志</button>
+        <button class="nav-btn" data-tab="config">⚙️ 配置</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="btn-init" class="btn-primary">初始化</button>
+      </div>
+    </aside>
+
+    <main id="main">
+      <!-- 聊天面板 -->
+      <section id="tab-chat" class="tab-pane active">
+        <div id="chat-header">
+          <h2>对话</h2>
+          <button id="btn-clear-chat" class="btn-small" title="清空对话">🗑️</button>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+          <textarea id="chat-input" rows="2" placeholder="输入消息..." maxlength="4000"></textarea>
+          <button id="btn-send" class="btn-primary">发送</button>
+        </div>
+      </section>
+
+      <!-- 定时任务面板 -->
+      <section id="tab-cron" class="tab-pane">
+        <h2>定时任务</h2>
+        <div id="cron-toolbar">
+          <button id="btn-add-cron" class="btn-primary">+ 新建任务</button>
+          <button id="btn-refresh-cron" class="btn-small">🔄 刷新</button>
+        </div>
+        <div id="cron-list"></div>
+
+        <!-- 新建任务弹窗 -->
+        <div id="cron-modal" class="modal hidden">
+          <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3>新建定时任务</h3>
+            <form id="cron-form">
+              <label>名称 <input type="text" name="name" required maxlength="100"></label>
+              <label>任务指令 <textarea name="task_prompt" required maxlength="2000" rows="3"></textarea></label>
+              <label>调度类型
+                <select name="schedule_type">
+                  <option value="cron">周期 (cron)</option>
+                  <option value="once">一次性</option>
+                  <option value="interval">间隔</option>
+                </select>
+              </label>
+              <label class="cron-dep" data-type="cron">Cron 表达式 <input type="text" name="cron_expr" placeholder="0 9 * * *"></label>
+              <label class="cron-dep" data-type="once">执行时间 <input type="datetime-local" name="run_at"></label>
+              <label class="cron-dep" data-type="interval">间隔秒数 <input type="number" name="interval_seconds" min="60" value="3600"></label>
+              <label>LLM 提供商 <input type="text" name="llm_provider" placeholder="留空使用默认"></label>
+              <label>LLM 模型 <input type="text" name="llm_model" placeholder="留空使用默认"></label>
+              <button type="submit" class="btn-primary">创建</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- 报告弹窗 -->
+        <div id="report-modal" class="modal hidden">
+          <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3>任务报告</h3>
+            <div id="report-detail"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 日志面板 -->
+      <section id="tab-logs" class="tab-pane">
+        <h2>日志</h2>
+        <div id="log-toolbar">
+          <button id="btn-refresh-logs" class="btn-small">🔄 刷新</button>
+          <button id="btn-clear-logs" class="btn-small">🗑️ 清空显示</button>
+        </div>
+        <pre id="log-output"></pre>
+      </section>
+
+      <!-- 配置面板 -->
+      <section id="tab-config" class="tab-pane">
+        <h2>配置</h2>
+        <pre id="config-output"></pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

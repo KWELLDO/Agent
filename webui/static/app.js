@@ -482,5 +482,90 @@ items?.forEach(el => {
 // 从 localStorage 恢复
 updateToolLevel(state.toolDisplayLevel);
 
+// ===== 浏览器面板 =====
+let _browserPollTimer = null;
+
+async function refreshBrowser() {
+  try {
+    const info = await (await fetch('/api/browser/page-info')).json();
+    const titleEl = document.getElementById('browser-title');
+    const urlInput = document.getElementById('browser-url-input');
+    if (info.title) titleEl.textContent = info.title + ' — ' + info.url;
+    else if (info.url) titleEl.textContent = info.url;
+    else titleEl.textContent = info.error || '';
+    if (info.url && urlInput) urlInput.value = info.url;
+    return info;
+  } catch { return {}; }
+}
+
+async function refreshBrowserScreenshot() {
+  try {
+    const r = await fetch('/api/browser/screenshot');
+    const data = await r.json();
+    const img = document.getElementById('browser-screenshot');
+    if (img && data.data) {
+      img.src = data.data;
+    }
+  } catch {}
+}
+
+function startBrowserPoll() {
+  stopBrowserPoll();
+  refreshBrowser();
+  refreshBrowserScreenshot();
+  _browserPollTimer = setInterval(() => {
+    refreshBrowserScreenshot();
+  }, 2000);
+}
+
+function stopBrowserPoll() {
+  if (_browserPollTimer) { clearInterval(_browserPollTimer); _browserPollTimer = null; }
+}
+
+// Browser URL form
+const browserForm = document.getElementById('browser-url-form');
+if (browserForm) {
+  browserForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const input = document.getElementById('browser-url-input');
+    const url = input?.value.trim();
+    if (!url) return;
+    // Send navigation via chat
+    addMsgCard('user', '打开 ' + url);
+    state.streaming = true;
+    disableInput();
+    _streamCard = null;
+    const wsOk = sendWsMessage(JSON.stringify({ message: '打开 ' + url + ' 并截图' }));
+    if (!wsOk) {
+      state.streaming = false;
+      enableInput();
+    }
+  });
+}
+
+document.getElementById('btn-browser-back')?.addEventListener('click', async () => {
+  await fetch('/api/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({message: '浏览器后退'}) });
+  setTimeout(refreshBrowserScreenshot, 2000);
+});
+
+document.getElementById('btn-browser-forward')?.addEventListener('click', async () => {
+  await fetch('/api/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({message: '浏览器前进'}) });
+  setTimeout(refreshBrowserScreenshot, 2000);
+});
+
+document.getElementById('btn-browser-refresh')?.addEventListener('click', async () => {
+  await fetch('/api/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({message: '刷新浏览器'}) });
+  setTimeout(refreshBrowserScreenshot, 2000);
+});
+
+// Tab switch handler for browser
+const origTabHandler = dom.tabs.forEach.bind(dom.tabs);
+dom.tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'browser') { startBrowserPoll(); }
+    else { stopBrowserPoll(); }
+  });
+});
+
 // ===== 启动 =====
 autoInit();

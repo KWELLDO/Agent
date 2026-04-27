@@ -18,6 +18,7 @@
       <nav class="sidebar-nav">
         <button class="nav-btn active" data-tab="chat">💬 聊天</button>
         <button class="nav-btn" data-tab="cron">⏰ 定时任务</button>
+        <button class="nav-btn" data-tab="browser">🌐 浏览器</button>
         <button class="nav-btn" data-tab="logs">📋 日志</button>
         <button class="nav-btn" data-tab="config">⚙️ 配置</button>
       </nav>
@@ -89,6 +90,26 @@
             <h3>任务报告</h3>
             <div id="report-detail"></div>
           </div>
+        </div>
+      </section>
+
+      <!-- 浏览器面板 -->
+      <section id="tab-browser" class="tab-pane">
+        <div id="browser-toolbar">
+          <form id="browser-url-form" class="browser-url-bar">
+            <input type="text" id="browser-url-input" placeholder="输入 URL..." value="https://example.com">
+            <button type="submit" class="btn-small">前往</button>
+            <button type="button" id="btn-browser-back" class="btn-small" title="后退">←</button>
+            <button type="button" id="btn-browser-forward" class="btn-small" title="前进">→</button>
+            <button type="button" id="btn-browser-refresh" class="btn-small" title="刷新">⟳</button>
+          </form>
+        </div>
+        <div id="browser-page-info" class="browser-info">
+          <span id="browser-title"></span>
+        </div>
+        <div id="browser-screenshot-container">
+          <img id="browser-screenshot" src="" alt="页面截图">
+          <div id="browser-screenshot-empty">点击"前往"或通过 Agent 导航后显示截图</div>
         </div>
       </section>
 

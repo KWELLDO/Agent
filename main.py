@@ -9,6 +9,7 @@ from langchain_core.messages import HumanMessage
 
 from logger import setup_logging, get_logger
 from tools import run_command
+from browser import _BROWSER_TOOLS
 from model_setup import build_llm_from_env
 from agent_setup import build_agent
 from safety import MessageHistory
@@ -30,7 +31,7 @@ cron_engine = SchedulerEngine(cron_store)
 bind_engine(cron_engine)
 cron_engine.start()
 
-tools = [run_command] + _CRON_MGMT_TOOLS
+tools = [run_command] + _CRON_MGMT_TOOLS + _BROWSER_TOOLS
 
 agent = build_agent(llm, tools)
 if agent is None:

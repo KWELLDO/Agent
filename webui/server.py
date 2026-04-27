@@ -288,6 +288,38 @@ async def get_logs(lines: int = 50):
         return {"logs": [], "error": "无法读取日志文件"}
 
 
+# --- 浏览器 ---
+
+@app.get("/api/browser/page-info")
+async def browser_page_info():
+    from browser.session import get_session
+    sess = get_session()
+    err = sess.start()
+    if err:
+        return {"url": "", "title": "", "error": err}
+    try:
+        info = sess.get_page_info()
+        return info
+    except Exception as e:
+        return {"url": "", "title": "", "error": str(e)}
+
+
+@app.get("/api/browser/screenshot")
+async def browser_screenshot():
+    from browser.session import get_session
+    sess = get_session()
+    err = sess.start()
+    if err:
+        return {"error": err}
+    try:
+        data = sess.get_screenshot_base64()
+        if data:
+            return {"data": data}
+        return {"error": "截图失败"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.on_event("shutdown")
 async def shutdown():
     mgr = get_manager()

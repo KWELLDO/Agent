@@ -5,3 +5,8 @@ venv/
 *.log
 .idea/
 .DS_Store
+*.zip
+*.tar.gz
+*.tgz
+screenshots/
+~/.agent_browser_state/

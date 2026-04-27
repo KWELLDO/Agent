@@ -7,7 +7,7 @@ import re
 import threading
 import time
 from typing import Any
-from urllib.parse import unquote
+from urllib.parse import unquote, quote
 
 from playwright.async_api import async_playwright
 
@@ -124,6 +124,9 @@ class BrowserSession:
     def _sync(self, coro, timeout: float = 60):
         if not self._loop or not self._thread or self._closed:
             return "[错误] 浏览器未启动或已关闭"
+        if not self._thread.is_alive():
+            self._ready = False
+            return "[错误] 浏览器事件循环已停止，请重新初始化"
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         try:
             return future.result(timeout=timeout)
@@ -158,19 +161,36 @@ class BrowserSession:
 
         return self._op(_run)
 
-    def click(self, selector: str, timeout: int = 10) -> str:
+    def click(self, selector: str, timeout: int = 10, force: bool = False) -> str:
         def _run():
+            sel_json = json.dumps(selector)
             async def _click():
-                await self._page.click(selector, timeout=timeout * 1000)
+                try:
+                    await self._page.click(selector, timeout=timeout * 1000, force=force)
+                except Exception:
+                    if not force:
+                        raise
+                    await self._page.evaluate(
+                        f"document.querySelector({sel_json})?.click()"
+                    )
             self._sync(_click(), timeout=timeout + 10)
             return f"已点击: {selector}"
 
         return self._op(_run)
 
-    def fill(self, selector: str, text: str, timeout: int = 10) -> str:
+    def fill(self, selector: str, text: str, timeout: int = 10, force: bool = False) -> str:
         def _run():
+            sel_json = json.dumps(selector)
+            val_json = json.dumps(text)
             async def _fill():
-                await self._page.fill(selector, text, timeout=timeout * 1000)
+                try:
+                    await self._page.fill(selector, text, timeout=timeout * 1000, force=force)
+                except Exception:
+                    if not force:
+                        raise
+                    await self._page.evaluate(
+                        f"document.querySelector({sel_json}).value = {val_json}"
+                    )
             self._sync(_fill(), timeout=timeout + 10)
             return f"已填写 {selector}: {text[:50]}"
 

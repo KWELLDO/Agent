@@ -33,32 +33,34 @@ def browser_navigate(url: str, timeout: int = 30) -> str:
 
 
 @tool
-def browser_click(selector: str, timeout: int = 10) -> str:
-    """点击页面中匹配 CSS 选择器的元素。
+def browser_click(selector: str, timeout: int = 10, force: bool = False) -> str:
+    """点击页面中匹配 CSS 选择器的元素。如果普通点击失败（被遮挡），可设 force=True 强制点击。
 
     Args:
         selector: CSS 选择器（如 #submit, button.primary, a[href*="login"]）
         timeout: 等待元素出现的秒数
+        force: 是否强制点击（绕过可见性检测），默认 False
     """
     sess, err = _ensure_browser()
     if err:
         return err
-    return sess.click(selector, timeout=timeout)
+    return sess.click(selector, timeout=timeout, force=force)
 
 
 @tool
-def browser_fill(selector: str, text: str, timeout: int = 10) -> str:
-    """在输入框中填入文本。会先清空原有内容。
+def browser_fill(selector: str, text: str, timeout: int = 10, force: bool = False) -> str:
+    """在输入框中填入文本。会先清空原有内容。如果元素被遮挡填充失败，可设 force=True 强制填充。
 
     Args:
         selector: CSS 选择器
         text: 要填入的文本
         timeout: 等待元素出现的秒数
+        force: 是否强制填充（绕过可见性检测），默认 False
     """
     sess, err = _ensure_browser()
     if err:
         return err
-    return sess.fill(selector, text, timeout=timeout)
+    return sess.fill(selector, text, timeout=timeout, force=force)
 
 
 @tool

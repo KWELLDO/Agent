@@ -181,20 +181,26 @@ function connectWs() {
     if (state.wsReconnectTimer) { clearTimeout(state.wsReconnectTimer); state.wsReconnectTimer = null; }
   };
 
+  let _pendingToolCall = null;
+
   function renderToolEvent(ev) {
     const level = state.toolDisplayLevel;
     if (level === 'hidden') return;
 
     if (ev.type === 'tool_call' && (level === 'verbose' || level === 'normal')) {
-      const safe = escapeHtml(ev.content);
-      appendToolBlock(`<div class="tool-call">⚡ ${safe}</div>`);
+      _pendingToolCall = escapeHtml(ev.content);
     }
 
     if (ev.type === 'tool_result' && (level === 'verbose' || level === 'normal')) {
+      const callHtml = _pendingToolCall || '调用工具';
+      _pendingToolCall = null;
       const safe = escapeHtml(ev.content);
       const truncated = level === 'normal' && ev.content.length > 120
         ? safe.slice(0, 120) + '...' : safe;
-      appendToolBlock(`<div class="tool-result">📋 ${truncated}</div>`);
+      appendToolBlock(
+        `<div class="tool-call">⚡ ${callHtml}</div>` +
+        `<div class="tool-result">📋 ${truncated}</div>`
+      );
     }
   }
 

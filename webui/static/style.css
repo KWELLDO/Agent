@@ -195,6 +195,10 @@ button { font-family: inherit; font-size: 14px; cursor: pointer; }
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   color: #abb2bf; line-height: 1.5;
   white-space: pre-wrap;
+  background: rgba(0,0,0,.25);
+}
+.tool-block .tool-result:only-child {
+  border-left: none;
 }
 
 /* ===== Markdown 内容样式 ===== */

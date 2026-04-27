@@ -24,7 +24,7 @@ def _cron_run_command(command: str, shell: str = "bash", cwd: str | None = None,
 
     Args:
         command: 要执行的命令
-        shell: 使用的 shell (bash / powershell / nushell)
+        shell: 使用的 shell (bash / nushell)
         cwd: 执行目录，为 None 时保持在当前会话目录
         timeout: 超时秒数
     """

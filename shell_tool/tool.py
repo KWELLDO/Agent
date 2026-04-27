@@ -19,11 +19,11 @@ def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeo
     """在持久 shell 会话中执行命令并返回输出。
 
     会话会保持 cd、export、source venv 等状态。
-    支持 bash / powershell / nushell，后两者可用 to json 输出结构化数据。
+    默认使用 bash，也可用 nushell。
 
     Args:
         command: 要执行的命令
-        shell: 使用的 shell (bash / powershell / nushell)
+        shell: 使用的 shell (bash / nushell)
         cwd: 执行目录，为 None 时保持在当前会话目录
         timeout: 超时秒数
     """

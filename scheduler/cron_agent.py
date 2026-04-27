@@ -1,6 +1,8 @@
 # ===== 引入区 =====
 import os
+import shutil
 
+import pexpect
 from langchain_core.tools import tool
 
 from shell_tool.session import SHELL_CONFIG
@@ -29,13 +31,17 @@ def _cron_run_command(command: str, shell: str = "bash", cwd: str | None = None,
     if shell not in SHELL_CONFIG:
         return f"不支持的 shell: {shell}，可选: {', '.join(SHELL_CONFIG)}"
 
+    exe = SHELL_CONFIG[shell]["executable"]
+    if shutil.which(exe) is None:
+        return f"{shell}({exe}) 未安装，请先安装后再使用"
+
     if cwd is not None and str(cwd).lower() in ("none", "null", ""):
         cwd = None
 
-    session = _cron_pool.acquire(shell)
     try:
+        session = _cron_pool.acquire(shell)
         output = session.execute(command, cwd=cwd, timeout=timeout)
-    except FileNotFoundError:
+    except (FileNotFoundError, pexpect.exceptions.ExceptionPexpect):
         return f"{shell} 未安装，请先安装后再使用"
     except TimeoutError:
         logger.warning(f"Cron 命令超时({timeout}s): {command[:80]}")

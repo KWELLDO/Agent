@@ -1,4 +1,8 @@
 # ===== 引入区 =====
+import shutil
+
+import pexpect
+
 from langchain_core.tools import tool
 
 from shell_tool.session import SHELL_CONFIG
@@ -26,14 +30,18 @@ def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeo
     if shell not in SHELL_CONFIG:
         return f"不支持的 shell: {shell}，可选: {', '.join(SHELL_CONFIG)}"
 
+    exe = SHELL_CONFIG[shell]["executable"]
+    if shutil.which(exe) is None:
+        return f"{shell}({exe}) 未安装，请先安装后再使用"
+
     if cwd is not None and str(cwd).lower() in ("none", "null", ""):
         cwd = None
 
     logger.info(f"run_command: shell={shell}, cwd={cwd}, timeout={timeout}, command={command[:120]}")
-    session = pool.acquire(shell)
     try:
+        session = pool.acquire(shell)
         output = session.execute(command, cwd=cwd, timeout=timeout)
-    except FileNotFoundError:
+    except (FileNotFoundError, pexpect.exceptions.ExceptionPexpect):
         logger.error(f"{shell} 未安装")
         return f"{shell} 未安装，请先安装后再使用"
     except TimeoutError:

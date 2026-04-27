@@ -111,11 +111,7 @@ function addMsgCard(role, content, extraClass) {
   bubble.className = 'msg-bubble';
 
   if (role === 'tool') {
-    if (content.startsWith('调用工具:')) {
-      bubble.innerHTML = `<div class="tool-header">⚡ ${escapeHtml(content)}</div>`;
-    } else {
-      bubble.innerHTML = `<div class="tool-output">📋 ${escapeHtml(content)}</div>`;
-    }
+    bubble.innerHTML = `<pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:13px">${escapeHtml(content)}</pre>`;
   } else if (role === 'system') {
     bubble.textContent = content;
   } else {
@@ -184,19 +180,18 @@ function connectWs() {
     const level = state.toolDisplayLevel;
     if (level === 'hidden') return;
 
-    if (ev.type === 'tool_call') {
-      if (level === 'verbose' || level === 'normal') {
-        setStreamPlaceholder(`<div class="tool-header">⚡ ${escapeHtml(ev.content)}</div>`);
-      } else if (level === 'compact') {
-        setStreamPlaceholder(`<span style="color:var(--text-muted);font-size:12px">⚡ 调用工具...</span>`);
-      }
-    } else if (ev.type === 'tool_result') {
+    if (ev.type === 'tool_call' && (level === 'verbose' || level === 'normal')) {
+      if (level === 'compact') return;
+      addMsgCard('tool', `⚡ ${ev.content}`);
+    }
+
+    if (ev.type === 'tool_result') {
       if (level === 'verbose') {
-        setStreamPlaceholder(`<div class="tool-header">⚡ 工具调用</div><div class="tool-output">📋 ${escapeHtml(ev.content)}</div>`);
+        addMsgCard('tool', `📋 ${ev.content}`);
       } else if (level === 'normal') {
-        setStreamPlaceholder(`<div class="tool-header">⚡ 工具调用</div><div class="tool-output" style="font-size:12px">📋 ${escapeHtml(ev.content).slice(0, 80)}${ev.content.length > 80 ? '...' : ''}</div>`);
+        const truncated = ev.content.length > 120 ? ev.content.slice(0, 120) + '...' : ev.content;
+        addMsgCard('tool', `📋 ${truncated}`);
       }
-      // compact: do nothing, already showed badge
     }
   }
 

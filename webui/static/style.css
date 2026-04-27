@@ -142,8 +142,8 @@ button { font-family: inherit; font-size: 14px; cursor: pointer; }
 .msg-card.user { align-self: flex-end; }
 .msg-card.agent { align-self: flex-start; }
 .msg-card.system { align-self: center; max-width: 70%; }
-.msg-card.tool-card {
-  align-self: flex-start; max-width: 85%; opacity: .85;
+.msg-card.tool {
+  align-self: flex-start; max-width: 92%;
 }
 
 .msg-meta {
@@ -176,9 +176,13 @@ button { font-family: inherit; font-size: 14px; cursor: pointer; }
   background: var(--bg-secondary); border: 1px solid var(--border);
   border-radius: 16px; padding: 4px 14px; font-size: 12px;
 }
-.msg-card.tool-card .msg-bubble {
-  background: rgba(86,95,137,.2); border: 1px solid var(--border);
+.msg-card.tool .msg-bubble {
+  background: #0d1117; border: 1px solid var(--border);
+  border-left: 3px solid var(--warning);
   font-size: 13px; font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  line-height: 1.5;
 }
 
 /* ===== Markdown 内容样式 ===== */

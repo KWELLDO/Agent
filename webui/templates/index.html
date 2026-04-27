@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent Web UI</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -19,13 +21,13 @@
         <button class="nav-btn" data-tab="logs">📋 日志</button>
         <button class="nav-btn" data-tab="config">⚙️ 配置</button>
       </nav>
-      <div class="sidebar-footer">
-        <button id="btn-init" class="btn-primary">初始化</button>
+      <div id="status-bar" class="sidebar-footer">
+        <span id="status-text">初始化中...</span>
+        <button id="btn-retry" class="btn-small hidden">重试</button>
       </div>
     </aside>
 
     <main id="main">
-      <!-- 聊天面板 -->
       <section id="tab-chat" class="tab-pane active">
         <div id="chat-header">
           <h2>对话</h2>
@@ -33,12 +35,11 @@
         </div>
         <div id="chat-messages"></div>
         <div id="chat-input-area">
-          <textarea id="chat-input" rows="2" placeholder="输入消息..." maxlength="4000"></textarea>
-          <button id="btn-send" class="btn-primary">发送</button>
+          <textarea id="chat-input" rows="2" placeholder="输入消息..." maxlength="4000" disabled></textarea>
+          <button id="btn-send" class="btn-primary" disabled>发送</button>
         </div>
       </section>
 
-      <!-- 定时任务面板 -->
       <section id="tab-cron" class="tab-pane">
         <h2>定时任务</h2>
         <div id="cron-toolbar">
@@ -47,7 +48,6 @@
         </div>
         <div id="cron-list"></div>
 
-        <!-- 新建任务弹窗 -->
         <div id="cron-modal" class="modal hidden">
           <div class="modal-content">
             <span class="modal-close">&times;</span>
@@ -72,7 +72,6 @@
           </div>
         </div>
 
-        <!-- 报告弹窗 -->
         <div id="report-modal" class="modal hidden">
           <div class="modal-content">
             <span class="modal-close">&times;</span>
@@ -82,7 +81,6 @@
         </div>
       </section>
 
-      <!-- 日志面板 -->
       <section id="tab-logs" class="tab-pane">
         <h2>日志</h2>
         <div id="log-toolbar">
@@ -92,7 +90,6 @@
         <pre id="log-output"></pre>
       </section>
 
-      <!-- 配置面板 -->
       <section id="tab-config" class="tab-pane">
         <h2>配置</h2>
         <pre id="config-output"></pre>

@@ -167,13 +167,7 @@ function removeStreamMsg() {
   state.streamBuffer = '';
 }
 
-function finalizeStream() {
-  const el = dom.chatMessages.querySelector('.msg-card.streaming');
-  if (el) el.classList.remove('streaming');
-  state.streamBuffer = '';
-  state.streaming = false;
-  enableInput();
-}
+
 
 function removeStreamMsg() {
   const el = dom.chatMessages.querySelector('.msg-card.streaming');
@@ -201,7 +195,6 @@ function connectWs() {
       if (_streamCard && dom.chatMessages.contains(_streamCard)) {
         _streamCard.remove();
         _streamCard = null;
-        state.streamBuffer = '';
       }
       state.toolEventsPending = true;
       addMsgCard('tool', `⚡ ${ev.content}`);

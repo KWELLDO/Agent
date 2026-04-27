@@ -13,6 +13,7 @@ from agent_setup import build_agent
 from safety import MessageHistory
 from tools import run_command
 from scheduler import CronStore, SchedulerEngine, bind_engine, _CRON_MGMT_TOOLS
+from browser import _BROWSER_TOOLS
 
 
 # ===== 定义区 =====
@@ -55,7 +56,7 @@ class AgentManager:
             bind_engine(self._cron_engine)
             self._cron_engine.start()
 
-            tools = [run_command] + _CRON_MGMT_TOOLS
+            tools = [run_command] + _CRON_MGMT_TOOLS + _BROWSER_TOOLS
             self._agent = build_agent(self._llm, tools)
             if self._agent is None:
                 self._error = "Agent 创建失败"

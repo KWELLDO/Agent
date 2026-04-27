@@ -125,13 +125,13 @@ function addMsgCard(role, content, extraClass) {
 }
 
 // ===== 流式消息渲染 =====
+let _streamCard = null;
+
 function getOrCreateStreamCard() {
-  let el = dom.chatMessages.querySelector('.msg-card.streaming');
-  if (!el) {
-    el = addMsgCard('agent', '', 'streaming');
-    el.querySelector('.msg-bubble').innerHTML = '<div class="thinking-indicator"><div class="spinner"></div> 思考中...</div>';
-  }
-  return el;
+  if (_streamCard && dom.chatMessages.contains(_streamCard)) return _streamCard;
+  _streamCard = addMsgCard('agent', '', 'streaming');
+  _streamCard.querySelector('.msg-bubble').innerHTML = '<div class="thinking-indicator"><div class="spinner"></div> 思考中...</div>';
+  return _streamCard;
 }
 
 function appendStreamToken(text) {
@@ -144,11 +144,22 @@ function appendStreamToken(text) {
   scrollChat();
 }
 
-function setStreamPlaceholder(html) {
-  const el = getOrCreateStreamCard();
-  const bubble = el.querySelector('.msg-bubble');
-  bubble.innerHTML = html;
-  scrollChat();
+function finalizeStream() {
+  if (_streamCard && dom.chatMessages.contains(_streamCard)) {
+    _streamCard.classList.remove('streaming');
+  }
+  _streamCard = null;
+  state.streamBuffer = '';
+  state.streaming = false;
+  enableInput();
+}
+
+function removeStreamMsg() {
+  if (_streamCard && dom.chatMessages.contains(_streamCard)) {
+    _streamCard.remove();
+  }
+  _streamCard = null;
+  state.streamBuffer = '';
 }
 
 function finalizeStream() {
@@ -208,6 +219,13 @@ function connectWs() {
         renderToolEvent(ev);
         break;
       case 'done':
+        if (!state.streamBuffer && ev.content) {
+          getOrCreateStreamCard();
+          const el = _streamCard;
+          if (el) {
+            el.querySelector('.msg-bubble').innerHTML = parseMarkdown(ev.content);
+          }
+        }
         finalizeStream();
         break;
       case 'error':
@@ -295,14 +313,11 @@ function sendMessage() {
   dom.chatInput.value = '';
   addMsgCard('user', text);
 
-  if (sendWsMessage(text)) {
-    state.streaming = true;
-    disableInput();
-    getOrCreateStreamCard();
-  } else {
-    state.streaming = true;
-    disableInput();
-    getOrCreateStreamCard();
+  state.streaming = true;
+  disableInput();
+  _streamCard = null;
+
+  if (!sendWsMessage(text)) {
     sendPostFallback(text);
   }
 }

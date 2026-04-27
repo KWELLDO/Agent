@@ -150,6 +150,15 @@ class AgentManager:
                     for node_name, node_data in data.items():
                         if "messages" in node_data:
                             final_messages = node_data["messages"]
+                            msgs = node_data["messages"]
+                            if node_name in ("model", "agent") and msgs:
+                                last = msgs[-1]
+                                tcs = getattr(last, "tool_calls", None)
+                                if tcs:
+                                    for tc in tcs:
+                                        name = tc.get("name") or tc.get("id", "")
+                                        args = tc.get("args", {}) if isinstance(tc.get("args"), dict) else {}
+                                        yield {"type": "tool_call", "content": f"调用工具: {name}({args})"}
 
             if final_messages:
                 self._history.reset(list(final_messages))

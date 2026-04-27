@@ -103,9 +103,11 @@ class BrowserSession:
     async def _async_start(self):
         try:
             self._playwright = await async_playwright().start()
-            self._browser = await self._playwright.chromium.launch(
-                headless=True,
-            )
+            proxy = os.getenv("HTTP_PROXY") or os.getenv("HTTPS_PROXY")
+            launch_args = {"headless": True}
+            if proxy:
+                launch_args["proxy"] = {"server": proxy}
+            self._browser = await self._playwright.chromium.launch(**launch_args)
             self._context = await self._browser.new_context(
                 viewport={"width": 1280, "height": 720},
                 locale="zh-CN",

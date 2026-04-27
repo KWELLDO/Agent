@@ -18,7 +18,9 @@ def _ensure_browser():
 
 @tool
 def browser_navigate(url: str, timeout: int = 30) -> str:
-    """导航到指定 URL 并等待页面加载。支持 http/https，可省略协议（自动补 https://）。
+    """打开网页/进行网络搜索。这是访问互联网的唯一方式，不要使用 curl 或 wget。
+    使用 Playwright 真实浏览器渲染，支持 JavaScript、处理反爬。
+    导航后可配合 browser_extract_text 提取内容、browser_screenshot 截图。
 
     Args:
         url: 目标网址（如 example.com 或 https://example.com）
@@ -76,10 +78,10 @@ def browser_select(selector: str, value: str, timeout: int = 10) -> str:
 
 @tool
 def browser_extract_text(selector: str = "body") -> str:
-    """提取页面中匹配 CSS 选择器的纯文本内容。默认提取整个页面可见文本。
+    """提取网页正文内容。用于阅读搜索结果或文章内容。
 
     Args:
-        selector: CSS 选择器，默认 body 提取全文
+        selector: CSS 选择器，默认 body 提取全文，可传 "main" 或 ".content"
     """
     sess, err = _ensure_browser()
     if err:
@@ -102,7 +104,7 @@ def browser_extract_html(selector: str = "body") -> str:
 
 @tool
 def browser_screenshot() -> str:
-    """截取当前页面截图，返回 base64 编码的 data URI 图片，可直接嵌入 HTML。"""
+    """截取当前网页截图为 base64 图片。用于查看页面渲染效果、验证搜索结果、阅读验证码等。"""
     sess, err = _ensure_browser()
     if err:
         return err

@@ -17,7 +17,7 @@ MAX_OUTPUT_CHARS = 4000
 @tool
 def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeout: int = 30) -> str:
     """在持久 shell 会话中执行命令并返回输出。
-
+    注意：不要用 curl/wget 访问网页，请使用 browser_navigate 等浏览器工具。
     会话会保持 cd、export、source venv 等状态。
     默认使用 bash，也可用 nushell。
 

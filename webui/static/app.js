@@ -3,6 +3,8 @@ const state = {
   ready: false,
   initError: null,
   ws: null,
+  wsReconnectTimer: null,
+  streaming: false,
 };
 
 // ===== DOM 引用 =====
@@ -32,22 +34,161 @@ const dom = {
 };
 
 // ===== 工具 =====
-function setStatus(stateName) {
-  dom.status.className = 'dot ' + stateName;
-}
-
-function addMsg(role, content) {
-  const el = document.createElement('div');
-  el.className = 'msg ' + role;
-  el.textContent = content;
-  dom.chatMessages.appendChild(el);
-  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+function setStatus(s) {
+  dom.status.className = 'dot ' + s;
 }
 
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function scrollChat() {
+  dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
+}
+
+// ===== 消息渲染 =====
+function addMsg(role, content) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + role;
+  el.textContent = content;
+  dom.chatMessages.appendChild(el);
+  scrollChat();
+  return el;
+}
+
+function getOrCreateStreamMsg() {
+  let el = dom.chatMessages.querySelector('.msg.streaming');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'msg agent streaming';
+    dom.chatMessages.appendChild(el);
+  }
+  return el;
+}
+
+function appendStreamToken(text) {
+  const el = getOrCreateStreamMsg();
+  const span = document.createElement('span');
+  span.textContent = text;
+  el.appendChild(span);
+  scrollChat();
+}
+
+function setStreamContent(html) {
+  const el = getOrCreateStreamMsg();
+  el.innerHTML = html;
+  scrollChat();
+}
+
+function finalizeStreamMsg(role) {
+  const el = dom.chatMessages.querySelector('.msg.streaming');
+  if (el) {
+    el.classList.remove('streaming');
+  }
+}
+
+function removeStreamMsg() {
+  const el = dom.chatMessages.querySelector('.msg.streaming');
+  if (el) el.remove();
+}
+
+// ===== WebSocket 连接 =====
+function connectWs() {
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) return;
+
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const url = `${protocol}//${location.host}/ws/chat`;
+
+  state.ws = new WebSocket(url);
+
+  state.ws.onopen = () => {
+    console.log('WebSocket 已连接');
+    if (state.wsReconnectTimer) {
+      clearTimeout(state.wsReconnectTimer);
+      state.wsReconnectTimer = null;
+    }
+  };
+
+  state.ws.onmessage = (e) => {
+    let event;
+    try {
+      event = JSON.parse(e.data);
+    } catch {
+      return;
+    }
+
+    switch (event.type) {
+      case 'token':
+        appendStreamToken(event.content);
+        break;
+
+      case 'tool_call':
+        setStreamContent(`<em style="color:var(--warning)">🔧 ${escapeHtml(event.content)}</em>`);
+        break;
+
+      case 'tool_result':
+        setStreamContent(
+          `<em style="color:var(--success)">📋 执行结果:</em>\n${escapeHtml(event.content)}`
+        );
+        break;
+
+      case 'done':
+        finalizeStreamMsg('agent');
+        state.streaming = false;
+        enableInput();
+        break;
+
+      case 'error':
+        removeStreamMsg();
+        addMsg('error', event.content);
+        state.streaming = false;
+        enableInput();
+        break;
+
+      case 'response':
+        removeStreamMsg();
+        addMsg('agent', event.content);
+        state.streaming = false;
+        enableInput();
+        break;
+    }
+  };
+
+  state.ws.onclose = () => {
+    console.log('WebSocket 已断开');
+    state.ws = null;
+    if (state.ready && !state.streaming) {
+      state.wsReconnectTimer = setTimeout(connectWs, 3000);
+    }
+  };
+
+  state.ws.onerror = () => {
+    console.error('WebSocket 错误');
+  };
+}
+
+function sendWsMessage(text) {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+    addMsg('error', 'WebSocket 未连接，正在重连...');
+    connectWs();
+    return false;
+  }
+  state.ws.send(JSON.stringify({ message: text }));
+  return true;
+}
+
+// ===== 输入控制 =====
+function disableInput() {
+  dom.chatInput.disabled = true;
+  dom.btnSend.disabled = true;
+}
+
+function enableInput() {
+  dom.chatInput.disabled = false;
+  dom.btnSend.disabled = false;
+  dom.chatInput.focus();
 }
 
 // ===== 初始化 =====
@@ -61,11 +202,11 @@ async function initAgent() {
       const err = await resp.json();
       throw new Error(err.detail || '初始化失败');
     }
-    const data = await resp.json();
     state.ready = true;
     setStatus('online');
     addMsg('system', 'Agent 已就绪');
     dom.btnInit.textContent = '已就绪';
+    connectWs();
     refreshCron();
     refreshConfig();
   } catch (e) {
@@ -77,23 +218,36 @@ async function initAgent() {
   }
 }
 
-// ===== 聊天 =====
-async function sendMessage() {
+// ===== 聊天（WebSocket 流式） =====
+function sendMessage() {
   const text = dom.chatInput.value.trim();
   if (!text) return;
   if (!state.ready) {
     addMsg('system', '请先点击"初始化"');
     return;
   }
+  if (state.streaming) {
+    addMsg('system', '请等待上一条消息处理完成');
+    return;
+  }
 
   dom.chatInput.value = '';
   addMsg('user', text);
 
-  const loadingEl = document.createElement('div');
-  loadingEl.className = 'msg system';
-  loadingEl.textContent = '思考中...';
-  dom.chatMessages.appendChild(loadingEl);
+  // 通过 WebSocket 发送（流式）
+  if (sendWsMessage(text)) {
+    state.streaming = true;
+    disableInput();
+    setStreamContent('<em style="color:var(--text-muted)">思考中...</em>');
+  } else {
+    // WebSocket 失败，降级到 POST
+    state.streaming = true;
+    disableInput();
+    sendPostFallback(text);
+  }
+}
 
+async function sendPostFallback(text) {
   try {
     const resp = await fetch('/api/chat', {
       method: 'POST',
@@ -101,15 +255,18 @@ async function sendMessage() {
       body: JSON.stringify({ message: text }),
     });
     const data = await resp.json();
-    loadingEl.remove();
+    removeStreamMsg();
     if (data.error) {
       addMsg('error', data.error);
     } else {
       addMsg('agent', data.output || '(空响应)');
     }
   } catch (e) {
-    loadingEl.remove();
+    removeStreamMsg();
     addMsg('error', '请求失败: ' + e.message);
+  } finally {
+    state.streaming = false;
+    enableInput();
   }
 }
 
@@ -231,7 +388,6 @@ dom.tabs.forEach(btn => {
     const tab = document.getElementById('tab-' + btn.dataset.tab);
     if (tab) tab.classList.add('active');
 
-    // 懒加载
     if (btn.dataset.tab === 'cron') refreshCron();
     if (btn.dataset.tab === 'logs') refreshLogs();
     if (btn.dataset.tab === 'config') refreshConfig();
@@ -270,7 +426,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Cron 表单依赖显示
+// Cron 表单
 if (dom.cronForm) {
   const typeSelect = dom.cronForm.querySelector('[name="schedule_type"]');
   typeSelect.addEventListener('change', () => {
@@ -314,7 +470,6 @@ if (dom.cronForm) {
 
 // ===== 自动初始化 =====
 (async () => {
-  // 检查状态
   try {
     const resp = await fetch('/api/status');
     const data = await resp.json();
@@ -322,12 +477,13 @@ if (dom.cronForm) {
       state.ready = true;
       setStatus('online');
       dom.btnInit.textContent = '已就绪';
+      connectWs();
       refreshCron();
       refreshConfig();
       return;
     }
   } catch (e) {
-    // 服务未就绪，需要用户点击初始化
+    // 服务未就绪
   }
   setStatus('offline');
 })();

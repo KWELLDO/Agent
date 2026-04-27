@@ -99,7 +99,7 @@ async def chat_history():
     return {"messages": mgr.get_history()}
 
 
-# --- WebSocket 聊天 ---
+# --- WebSocket 聊天（流式） ---
 
 @app.websocket("/ws/chat")
 async def websocket_chat(ws: WebSocket):
@@ -125,15 +125,42 @@ async def websocket_chat(ws: WebSocket):
             if not msg.strip():
                 continue
 
-            result = mgr.chat(msg)
-            if result.get("error"):
-                await ws.send_json({"type": "error", "content": result["error"]})
-            else:
-                await ws.send_json({"type": "response", "content": result["output"]})
+            async for event in mgr.chat_stream(msg):
+                await ws.send_json(event)
+
     except WebSocketDisconnect:
         pass
     except Exception:
         logger.exception("WebSocket 异常")
+
+
+# --- SSE 流式聊天 ---
+
+@app.get("/api/chat/stream")
+async def chat_stream_sse(message: str):
+    from fastapi.responses import StreamingResponse
+
+    mgr = get_manager()
+    if not mgr.ready:
+        err = mgr.initialize()
+        if err:
+            return JSONResponse({"error": err}, status_code=500)
+
+    async def event_stream():
+        async for event in mgr.chat_stream(message):
+            data = json.dumps(event, ensure_ascii=False)
+            yield f"data: {data}\n\n"
+        yield "data: {\"type\":\"__end__\"}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # --- Cron 管理 ---

@@ -2,7 +2,7 @@
 import os
 import threading
 import traceback
-from typing import Any, cast
+from typing import Any, AsyncGenerator, cast
 
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
@@ -107,6 +107,58 @@ class AgentManager:
                 err = traceback.format_exc()
                 self._logger.exception(f"Chat 异常: input={message[:60]}")
                 return {"output": "", "error": err}
+
+    async def chat_stream(self, message: str) -> AsyncGenerator[dict, None]:
+        if not self._ready:
+            yield {"type": "error", "content": "Agent 未就绪"}
+            return
+
+        try:
+            messages = [*self._history.to_messages(), HumanMessage(content=message)]
+            full_content = ""
+            final_messages = None
+
+            async for event in self._agent.astream(
+                {"messages": messages},
+                stream_mode=["messages", "updates"],
+                config={"recursion_limit": 30},
+            ):
+                mode = event[0]
+                data = event[1]
+
+                if mode == "messages":
+                    msg_chunk, metadata = data
+                    node = metadata.get("langgraph_node", "")
+
+                    if node in ("model", "agent"):
+                        tcc = getattr(msg_chunk, "tool_call_chunks", None)
+                        if tcc:
+                            for tc in tcc:
+                                name = getattr(tc, "name", None) or getattr(tc, "id", None)
+                                if name:
+                                    yield {"type": "tool_call", "content": f"调用工具: {name}"}
+
+                        if msg_chunk.content:
+                            full_content += msg_chunk.content
+                            yield {"type": "token", "content": msg_chunk.content}
+
+                    elif node == "tools":
+                        if hasattr(msg_chunk, "content") and msg_chunk.content:
+                            yield {"type": "tool_result", "content": str(msg_chunk.content)[:500]}
+
+                elif mode == "updates":
+                    for node_name, node_data in data.items():
+                        if "messages" in node_data:
+                            final_messages = node_data["messages"]
+
+            if final_messages:
+                self._history.reset(list(final_messages))
+            yield {"type": "done", "content": full_content}
+
+        except Exception:
+            err = traceback.format_exc()
+            self._logger.exception(f"Chat 流异常: input={message[:60]}")
+            yield {"type": "error", "content": err}
 
     def get_history(self) -> list[dict]:
         if not self._history:

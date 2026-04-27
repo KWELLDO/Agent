@@ -31,7 +31,18 @@
       <section id="tab-chat" class="tab-pane active">
         <div id="chat-header">
           <h2>对话</h2>
-          <button id="btn-clear-chat" class="btn-small" title="清空对话">🗑️</button>
+          <div class="header-actions">
+            <div class="dropdown" id="tool-level-dropdown">
+              <button class="btn-small dropdown-trigger" title="工具显示等级">🔧<span id="tool-level-label">标准</span></button>
+              <div class="dropdown-menu">
+                <button class="dropdown-item" data-level="verbose">详细 - 显示调用和结果</button>
+                <button class="dropdown-item" data-level="normal">标准 - 仅显示调用名</button>
+                <button class="dropdown-item" data-level="compact">简洁 - 仅显示标记</button>
+                <button class="dropdown-item" data-level="hidden">隐藏 - 不显示工具调用</button>
+              </div>
+            </div>
+            <button id="btn-clear-chat" class="btn-small" title="清空对话">🗑️</button>
+          </div>
         </div>
         <div id="chat-messages"></div>
         <div id="chat-input-area">

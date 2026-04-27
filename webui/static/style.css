@@ -108,6 +108,26 @@ button { font-family: inherit; font-size: 14px; cursor: pointer; }
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 12px; flex-shrink: 0;
 }
+.header-actions { display: flex; align-items: center; gap: 6px; }
+
+/* ===== 工具显示等级下拉 ===== */
+.dropdown { position: relative; display: inline-block; }
+.dropdown-trigger { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+#tool-level-label { font-size: 12px; }
+.dropdown-menu {
+  display: none; position: absolute; right: 0; top: 100%; margin-top: 4px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); z-index: 100;
+  min-width: 180px; overflow: hidden;
+}
+.dropdown.open .dropdown-menu { display: block; }
+.dropdown-item {
+  display: block; width: 100%; padding: 8px 12px; text-align: left;
+  background: none; border: none; color: var(--text-secondary);
+  font-size: 13px; cursor: pointer; transition: background .1s;
+}
+.dropdown-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.dropdown-item.active { color: var(--accent); font-weight: 600; background: rgba(122,162,247,.1); }
 #chat-messages {
   flex: 1; overflow-y: auto; padding: 8px 0;
   display: flex; flex-direction: column; gap: 12px;

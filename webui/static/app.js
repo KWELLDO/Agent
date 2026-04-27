@@ -5,6 +5,7 @@ const state = {
   wsReconnectTimer: null,
   streaming: false,
   streamBuffer: '',
+  toolDisplayLevel: localStorage.getItem('toolDisplayLevel') || 'normal',
 };
 
 // ===== DOM =====
@@ -179,6 +180,26 @@ function connectWs() {
     if (state.wsReconnectTimer) { clearTimeout(state.wsReconnectTimer); state.wsReconnectTimer = null; }
   };
 
+  function renderToolEvent(ev) {
+    const level = state.toolDisplayLevel;
+    if (level === 'hidden') return;
+
+    if (ev.type === 'tool_call') {
+      if (level === 'verbose' || level === 'normal') {
+        setStreamPlaceholder(`<div class="tool-header">⚡ ${escapeHtml(ev.content)}</div>`);
+      } else if (level === 'compact') {
+        setStreamPlaceholder(`<span style="color:var(--text-muted);font-size:12px">⚡ 调用工具...</span>`);
+      }
+    } else if (ev.type === 'tool_result') {
+      if (level === 'verbose') {
+        setStreamPlaceholder(`<div class="tool-header">⚡ 工具调用</div><div class="tool-output">📋 ${escapeHtml(ev.content)}</div>`);
+      } else if (level === 'normal') {
+        setStreamPlaceholder(`<div class="tool-header">⚡ 工具调用</div><div class="tool-output" style="font-size:12px">📋 ${escapeHtml(ev.content).slice(0, 80)}${ev.content.length > 80 ? '...' : ''}</div>`);
+      }
+      // compact: do nothing, already showed badge
+    }
+  }
+
   state.ws.onmessage = e => {
     let ev;
     try { ev = JSON.parse(e.data); } catch { return; }
@@ -188,10 +209,8 @@ function connectWs() {
         appendStreamToken(ev.content);
         break;
       case 'tool_call':
-        setStreamPlaceholder(`<div class="tool-header">⚡ ${escapeHtml(ev.content)}</div>`);
-        break;
       case 'tool_result':
-        setStreamPlaceholder(`<div class="tool-header">⚡ 工具调用</div><div class="tool-output">📋 ${escapeHtml(ev.content)}</div>`);
+        renderToolEvent(ev);
         break;
       case 'done':
         finalizeStream();
@@ -423,6 +442,38 @@ if (dom.cronForm) {
     } catch (e) { alert('创建失败: ' + e.message); }
   });
 }
+
+// ===== 工具显示等级下拉 =====
+const LEVEL_LABELS = { verbose: '详细', normal: '标准', compact: '简洁', hidden: '隐藏' };
+const dropdown = document.getElementById('tool-level-dropdown');
+const trigger = dropdown?.querySelector('.dropdown-trigger');
+const items = dropdown?.querySelectorAll('.dropdown-item');
+
+function updateToolLevel(level) {
+  state.toolDisplayLevel = level;
+  localStorage.setItem('toolDisplayLevel', level);
+  const label = document.getElementById('tool-level-label');
+  if (label) label.textContent = LEVEL_LABELS[level] || level;
+  items?.forEach(el => el.classList.toggle('active', el.dataset.level === level));
+}
+
+if (trigger) {
+  trigger.addEventListener('click', e => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+  document.addEventListener('click', () => dropdown.classList.remove('open'));
+}
+
+items?.forEach(el => {
+  el.addEventListener('click', () => {
+    updateToolLevel(el.dataset.level);
+    dropdown.classList.remove('open');
+  });
+});
+
+// 从 localStorage 恢复
+updateToolLevel(state.toolDisplayLevel);
 
 // ===== 启动 =====
 autoInit();

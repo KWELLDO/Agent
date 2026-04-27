@@ -176,13 +176,23 @@ button { font-family: inherit; font-size: 14px; cursor: pointer; }
   background: var(--bg-secondary); border: 1px solid var(--border);
   border-radius: 16px; padding: 4px 14px; font-size: 12px;
 }
-.msg-card.tool .msg-bubble {
-  background: #0d1117; border: 1px solid var(--border);
-  border-left: 3px solid var(--warning);
-  font-size: 13px; font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  color: var(--text-secondary);
-  padding: 8px 12px;
-  line-height: 1.5;
+/* ===== 工具嵌入块 ===== */
+.tool-block {
+  margin: 8px 0; background: #0d1117;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.tool-block .tool-call {
+  padding: 5px 10px; font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: var(--warning); background: rgba(224,175,104,.08);
+  border-bottom: 1px solid rgba(54,59,84,.5);
+}
+.tool-block .tool-result {
+  padding: 6px 10px; font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: var(--text-secondary); line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 /* ===== Markdown 内容样式 ===== */

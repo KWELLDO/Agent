@@ -44,9 +44,16 @@ class SafetySessionPool:
         item = self._pool.get(shell)
 
         if item is not None:
-            if not item.session.child.isalive():
-                logger.warning(f"会话 {shell} 进程已死亡，重建中")
-                item.session.close()
+            try:
+                alive = item.session.child.isalive()
+            except Exception:
+                alive = False
+            if not alive:
+                logger.info(f"会话 {shell} 重建中（上次已断开或无 PTY）")
+                try:
+                    item.session.close()
+                except Exception:
+                    pass
                 del self._pool[shell]
             else:
                 item.last_used = time.time()
@@ -54,7 +61,11 @@ class SafetySessionPool:
 
         with self._evict_lock:
             self._evict_if_full()
-        session = ShellSession(shell)
+        try:
+            session = ShellSession(shell)
+        except Exception as e:
+            logger.error(f"创建 {shell} 会话失败: {e}")
+            raise
         self._pool[shell] = _PoolItem(session, shell)
         return session
 

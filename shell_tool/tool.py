@@ -42,8 +42,8 @@ def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeo
         session = pool.acquire(shell)
         output = session.execute(command, cwd=cwd, timeout=timeout)
     except (FileNotFoundError, pexpect.exceptions.ExceptionPexpect):
-        logger.error(f"{shell} 未安装")
-        return f"{shell} 未安装，请先安装后再使用"
+        logger.error(f"{shell}({exe}) 启动失败")
+        return f"{shell}({exe}) 启动失败，可能是未安装或权限问题"
     except TimeoutError:
         logger.warning(f"命令超时({timeout}s)，强制终止: {command[:80]}")
         pool.kill(shell)

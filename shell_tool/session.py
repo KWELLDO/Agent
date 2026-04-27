@@ -1,6 +1,7 @@
 # ===== 引入区 =====
 import re
 import shlex
+import subprocess
 import time
 
 import pexpect
@@ -25,6 +26,13 @@ class ShellSession:
             raise ValueError(f"不支持的 shell: {shell}")
 
         self._shell = shell
+
+        # nushell 不用 PTY，用 subprocess 临时执行
+        if shell == "nushell":
+            logger.info("nushell 使用 subprocess 模式")
+            self.child = None
+            self._cwd = "."
+            return
 
         _PAGER_ENV = {
             "TERM": "dumb",
@@ -51,26 +59,33 @@ class ShellSession:
         self.child.sendline(f"echo '{_MARKER}'")
         self.child.expect(_MARKER_RE, timeout=10)
 
-    def _and_marker(self, command: str) -> str:
-        if self._shell == "nushell":
-            return f"{command}; echo '{_MARKER}'"
-        return f"{command} 2>&1; echo '{_MARKER}'"
-
-    def _cd_marker(self, path: str) -> str:
-        if self._shell == "nushell":
-            return f"cd {shlex.quote(path)}; echo '{_MARKER}'"
-        return f"cd {shlex.quote(path)} && echo '{_MARKER}'"
-
     def execute(self, command: str, cwd: str | None = None, timeout: int = 30) -> str:
+        # nushell: 每次启动临时进程执行，cd 靠 cwd 参数
+        if self._shell == "nushell":
+            try:
+                result = subprocess.run(
+                    ["nu", "-c", command],
+                    capture_output=True, text=True,
+                    cwd=cwd or self._cwd,
+                    timeout=timeout,
+                )
+                out = (result.stdout + result.stderr).strip()
+                return out or "(no output)"
+            except subprocess.TimeoutExpired:
+                return "(超时)"
+            except Exception as e:
+                return f"[错误] {e}"
+
+        # bash: use PTY
         self.child.timeout = timeout
 
         if cwd is not None and cwd != self._cwd:
             logger.info(f"切换目录: {self._cwd} -> {cwd}")
-            self.child.sendline(self._cd_marker(cwd))
+            self.child.sendline(f"cd {shlex.quote(cwd)} && echo '{_MARKER}'")
             self.child.expect(_MARKER_RE, timeout=timeout)
             self._cwd = cwd
 
-        self.child.sendline(self._and_marker(command))
+        self.child.sendline(f"{command} 2>&1; echo '{_MARKER}'")
         self.child.expect(_MARKER_RE, timeout=timeout)
         output = (self.child.before or "").strip()
         if "\n" in output:
@@ -82,6 +97,8 @@ class ShellSession:
         return output or "(no output)"
 
     def close(self):
+        if self._shell == "nushell":
+            return
         if self.child and self.child.isalive():
             logger.info(f"关闭 shell 会话: {self._shell}")
             self.child.close()

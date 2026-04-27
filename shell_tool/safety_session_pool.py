@@ -1,6 +1,7 @@
 # ===== 引入区 =====
 import os
 import signal
+import threading
 import time
 
 from shell_tool.session import SHELL_CONFIG, ShellSession
@@ -22,9 +23,24 @@ class SafetySessionPool:
         self.max_sessions = max_sessions
         self.idle_timeout = idle_timeout
         self._pool: dict[str, _PoolItem] = {}
+        self._locks: dict[str, threading.Lock] = {}
+        self._evict_lock = threading.Lock()
         register(self.close_all)
 
+    def acquire(self, shell: str = "bash") -> ShellSession:
+        lock = self._locks.setdefault(shell, threading.Lock())
+        lock.acquire()
+        return self._get_or_create(shell)
+
+    def release(self, shell: str = "bash") -> None:
+        lock = self._locks.get(shell)
+        if lock and lock.locked():
+            lock.release()
+
     def get(self, shell: str = "bash") -> ShellSession:
+        return self._get_or_create(shell)
+
+    def _get_or_create(self, shell: str = "bash") -> ShellSession:
         item = self._pool.get(shell)
 
         if item is not None:
@@ -36,7 +52,8 @@ class SafetySessionPool:
                 item.last_used = time.time()
                 return item.session
 
-        self._evict_if_full()
+        with self._evict_lock:
+            self._evict_if_full()
         session = ShellSession(shell)
         self._pool[shell] = _PoolItem(session, shell)
         return session

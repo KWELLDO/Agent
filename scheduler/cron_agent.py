@@ -1,6 +1,5 @@
 # ===== 引入区 =====
 import os
-import threading
 
 from langchain_core.tools import tool
 
@@ -15,17 +14,6 @@ from logger import get_logger
 
 # ===== 定义区 =====
 _cron_pool = SafetySessionPool(max_sessions=2, idle_timeout=120)
-_cron_pool_lock = threading.Lock()
-
-
-def _cron_pool_get(shell: str):
-    with _cron_pool_lock:
-        return _cron_pool.get(shell)
-
-
-def _cron_pool_kill(shell: str):
-    with _cron_pool_lock:
-        _cron_pool.kill(shell)
 
 
 @tool
@@ -44,18 +32,20 @@ def _cron_run_command(command: str, shell: str = "bash", cwd: str | None = None,
     if cwd is not None and str(cwd).lower() in ("none", "null", ""):
         cwd = None
 
+    session = _cron_pool.acquire(shell)
     try:
-        session = _cron_pool_get(shell)
         output = session.execute(command, cwd=cwd, timeout=timeout)
     except FileNotFoundError:
         return f"{shell} 未安装，请先安装后再使用"
     except TimeoutError:
         logger.warning(f"Cron 命令超时({timeout}s): {command[:80]}")
-        _cron_pool_kill(shell)
+        _cron_pool.kill(shell)
         return f"命令执行超时（{timeout}s）"
     except Exception:
         logger.exception(f"Cron 命令异常: {command[:80]}")
         return "执行命令时出错"
+    finally:
+        _cron_pool.release(shell)
 
     if len(output) > MAX_OUTPUT_CHARS:
         output = output[:MAX_OUTPUT_CHARS] + f"\n...（截断了 {len(output) - MAX_OUTPUT_CHARS} 字符）"

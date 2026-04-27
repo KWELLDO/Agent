@@ -30,8 +30,8 @@ def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeo
         cwd = None
 
     logger.info(f"run_command: shell={shell}, cwd={cwd}, timeout={timeout}, command={command[:120]}")
+    session = pool.acquire(shell)
     try:
-        session = pool.get(shell)
         output = session.execute(command, cwd=cwd, timeout=timeout)
     except FileNotFoundError:
         logger.error(f"{shell} 未安装")
@@ -43,6 +43,8 @@ def run_command(command: str, shell: str = "bash", cwd: str | None = None, timeo
     except Exception:
         logger.exception(f"run_command 执行异常: {command[:80]}")
         return "执行命令时出错"
+    finally:
+        pool.release(shell)
 
     if len(output) > MAX_OUTPUT_CHARS:
         logger.info(f"输出截断: {len(output)} -> {MAX_OUTPUT_CHARS} chars")

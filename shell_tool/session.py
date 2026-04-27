@@ -24,6 +24,17 @@ class ShellSession:
         if cfg is None:
             raise ValueError(f"不支持的 shell: {shell}")
 
+        _PAGER_ENV = {
+            "TERM": "dumb",
+            "PAGER": "cat",
+            "GIT_PAGER": "cat",
+            "MANPAGER": "cat",
+            "SYSTEMD_PAGER": "cat",
+            "BROWSER": "echo",
+            "LANG": "C.UTF-8",
+            "PAGER_DISABLE": "1",
+            "MORE": "-R",
+        }
         logger.info(f"启动持久 shell 会话: {shell}")
         self.child = pexpect.spawn(
             cfg["executable"],
@@ -32,7 +43,7 @@ class ShellSession:
             timeout=30,
             maxread=65536,
             searchwindowsize=None,
-            env={"TERM": "dumb"},
+            env=_PAGER_ENV,
         )
         self._cwd = "."
         self.shell = shell
